@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Result export checks</title>
+<style>body{font:16px system-ui;background:#ede8e4;padding:24px}main{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}figure{margin:0}img{width:100%;height:auto}a{display:block;margin:12px 0}output{display:block;margin-bottom:20px}</style>
+<h1>Result export checks · 4 spreads × 2 languages</h1>
+<output>Rendering…</output><main></main>
+<script type="module">
+import { cards, spreads } from '../src/cards.js';
+import { createResultImage, resultLayouts } from '../src/result.js';
+let passed = 0;
+try {
+  for (const lang of ['zh', 'en']) for (const [theme, spread] of Object.entries(spreads)) {
+    const drawn = [cards[2], cards[75], cards[10], cards[12], cards[64]].slice(0, spread.count).map((card, i) => ({card, reversed: i % 2 === 1}));
+    const blob = await createResultImage(theme, drawn, lang, new Date('2026-09-20T12:00:00'));
+    if (blob.type !== 'image/png' || blob.size < 10000) throw new Error(`${theme}: invalid PNG`);
+    const image = new Image();
+    image.src = URL.createObjectURL(blob);
+    image.alt = `${theme}-${lang}`;
+    await image.decode();
+    const layout = resultLayouts[theme];
+    if (image.naturalWidth !== layout.width || image.naturalHeight !== layout.height) throw new Error(`${theme}: wrong dimensions`);
+    const figure = document.createElement('figure');
+    const link = document.createElement('a');
+    link.href = image.src; link.download = `${theme}-${lang}.png`; link.textContent = `${theme}-${lang} · ${image.naturalWidth} × ${image.naturalHeight}`;
+    figure.append(link, image); document.querySelector('main').append(figure);
+    passed++;
+  }
+  document.querySelector('output').textContent = `PASS: ${passed} PNG exports, all cards and orientations rendered.`;
+} catch (error) { document.querySelector('output').textContent = `FAIL: ${error.message}`; }
+</script>
+</html>
